@@ -25,7 +25,7 @@ const AWS_ACCESS_KEY_ENV = "AWS_ACCESS_KEY_ID";
 const AWS_SECRET_KEY_ENV = "AWS_SECRET_ACCESS_KEY";
 const AWS_PROFILE_ENV = "AWS_PROFILE";
 
-function resolveProviderConfig(
+export function resolveProviderConfig(
   cfg: OpenClawConfig | undefined,
   provider: string,
 ): ModelProviderConfig | undefined {
@@ -203,8 +203,13 @@ export async function resolveApiKeyForProvider(params: {
   }
 
   const customKey = getCustomProviderApiKey(cfg, provider);
+  const providerConfig = resolveProviderConfig(cfg, provider);
   if (customKey) {
     return { apiKey: customKey, source: "models.json", mode: "api-key" };
+  }
+
+  if (providerConfig?.authHeader === false) {
+    return { apiKey: "", source: "models.json (no-auth)", mode: "api-key" };
   }
 
   const normalized = normalizeProviderId(provider);

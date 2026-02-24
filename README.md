@@ -1,5 +1,63 @@
 # 🦞 OpenClaw — Personal AI Assistant
 
+> **Fork of [openclaw/openclaw](https://github.com/openclaw/openclaw)** with support for providers that don't require authentication.
+
+## What this fork adds
+
+This fork enables using LLM providers that don't require API key authentication. Without these changes, OpenClaw would fail with:
+
+```
+Agent failed before reply: No API key resolved for provider
+```
+
+Even when the provider genuinely doesn't need an API key, OpenClaw's underlying `pi-ai` and `pi-coding-agent` libraries would still error out trying to validate one.
+
+### Example: OpenCode Zen Free Models
+
+[OpenCode Zen](https://opencode.ai/zen) offers free models like `big-pickle` and `minimax-m2.5-free` that don't require any API key. Configure them like this:
+
+```json
+{
+  "models": {
+    "providers": {
+      "zen-free": {
+        "baseUrl": "https://opencode.ai/zen/v1",
+        "api": "openai-completions",
+        "authHeader": false,
+        "models": [
+          {
+            "id": "big-pickle",
+            "name": "Big Pickle",
+            "reasoning": false,
+            "input": ["text"],
+            "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
+            "contextWindow": 128000,
+            "maxTokens": 8192
+          },
+          {
+            "id": "minimax-m2.5-free",
+            "name": "MiniMax M2.5 Free",
+            "reasoning": false,
+            "input": ["text"],
+            "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
+            "contextWindow": 128000,
+            "maxTokens": 8192
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+The key is `"authHeader": false` — this tells OpenClaw to skip API key validation and not send an `Authorization` header with requests.
+
+### Changes from upstream
+- Added `authHeader: false` support for no-auth providers
+- Runtime patching of pi-ai and pi-coding-agent to skip auth validation when `authHeader: false`
+
+---
+
 <p align="center">
     <picture>
         <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/openclaw/openclaw/main/docs/assets/openclaw-logo-text-dark.png">

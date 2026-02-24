@@ -27,6 +27,7 @@ import {
   ensureAuthProfileStore,
   getApiKeyForModel,
   resolveAuthProfileOrder,
+  resolveProviderConfig,
   type ResolvedProviderAuth,
 } from "../model-auth.js";
 import { normalizeProviderId } from "../model-selection.js";
@@ -429,11 +430,15 @@ export async function runEmbeddedPiAgent(
       const applyApiKeyInfo = async (candidate?: string): Promise<void> => {
         apiKeyInfo = await resolveApiKeyForCandidate(candidate);
         const resolvedProfileId = apiKeyInfo.profileId ?? candidate;
+        const providerConfig = resolveProviderConfig(params.config, model.provider);
         if (!apiKeyInfo.apiKey) {
-          if (apiKeyInfo.mode !== "aws-sdk") {
+          if (apiKeyInfo.mode !== "aws-sdk" && providerConfig?.authHeader !== false) {
             throw new Error(
               `No API key resolved for provider "${model.provider}" (auth mode: ${apiKeyInfo.mode}).`,
             );
+          }
+          if (providerConfig?.authHeader === false) {
+            authStorage.setRuntimeApiKey(model.provider, "no-auth-required");
           }
           lastProfileId = resolvedProfileId;
           return;

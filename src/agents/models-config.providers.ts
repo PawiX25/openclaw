@@ -524,6 +524,9 @@ export function normalizeProviders(params: {
         const apiKey = resolveAwsSdkApiKeyVarName();
         mutated = true;
         normalizedProvider = { ...normalizedProvider, apiKey };
+      } else if (normalizedProvider.authHeader === false) {
+        mutated = true;
+        normalizedProvider = { ...normalizedProvider, apiKey: "no-auth-required" };
       } else {
         const fromEnv = resolveEnvApiKeyVarName(normalizedKey);
         const fromProfiles = resolveApiKeyFromProfiles({
