@@ -42,6 +42,7 @@ import {
   loadOverview as loadOverviewInternal,
   setTab as setTabInternal,
   setTheme as setThemeInternal,
+  setThemeMode as setThemeModeInternal,
   onPopState as onPopStateInternal,
 } from "./app-settings.ts";
 import {
@@ -60,7 +61,7 @@ import type { SkillMessage } from "./controllers/skills.ts";
 import type { GatewayBrowserClient, GatewayHelloOk } from "./gateway.ts";
 import type { Tab } from "./navigation.ts";
 import { loadSettings, type UiSettings } from "./storage.ts";
-import { VALID_THEMES, type ResolvedTheme, type ThemeMode } from "./theme.ts";
+import { VALID_THEME_NAMES, type ResolvedTheme, type ThemeMode, type ThemeName } from "./theme.ts";
 import type {
   AgentsListResult,
   AgentsFilesListResult,
@@ -141,9 +142,10 @@ export class OpenClawApp extends LitElement {
   @state() tab: Tab = "chat";
   @state() onboarding = resolveOnboardingMode();
   @state() connected = false;
-  @state() theme: ThemeMode = this.settings.theme ?? "dark";
+  @state() theme: ThemeName = this.settings.theme ?? "claw";
+  @state() themeMode: ThemeMode = this.settings.themeMode ?? "system";
   @state() themeResolved: ResolvedTheme = "dark";
-  @state() themeOrder: ThemeMode[] = this.buildThemeOrder(this.theme);
+  @state() themeOrder: ThemeName[] = this.buildThemeOrder(this.theme);
   @state() hello: GatewayHelloOk | null = null;
   @state() lastError: string | null = null;
   @state() eventLog: EventLogEntry[] = [];
@@ -496,13 +498,21 @@ export class OpenClawApp extends LitElement {
     setTabInternal(this as unknown as Parameters<typeof setTabInternal>[0], next);
   }
 
-  setTheme(next: ThemeMode, context?: Parameters<typeof setThemeInternal>[2]) {
+  setTheme(next: ThemeName, context?: Parameters<typeof setThemeInternal>[2]) {
     setThemeInternal(this as unknown as Parameters<typeof setThemeInternal>[0], next, context);
     this.themeOrder = this.buildThemeOrder(next);
   }
 
-  buildThemeOrder(active: ThemeMode): ThemeMode[] {
-    const all = [...VALID_THEMES];
+  setThemeMode(next: ThemeMode, context?: Parameters<typeof setThemeModeInternal>[2]) {
+    setThemeModeInternal(
+      this as unknown as Parameters<typeof setThemeModeInternal>[0],
+      next,
+      context,
+    );
+  }
+
+  buildThemeOrder(active: ThemeName): ThemeName[] {
+    const all = [...VALID_THEME_NAMES];
     const rest = all.filter((id) => id !== active);
     return [active, ...rest];
   }

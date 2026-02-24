@@ -37,8 +37,10 @@ describe("config view", () => {
     onUpdate: vi.fn(),
     onSubsectionChange: vi.fn(),
     version: "2026.2.22",
-    theme: "dark" as const,
+    theme: "claw" as const,
+    themeMode: "system" as const,
     setTheme: vi.fn(),
+    setThemeMode: vi.fn(),
     gatewayUrl: "ws://127.0.0.1:18789",
     assistantName: "OpenClaw",
   });

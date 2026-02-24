@@ -8,7 +8,7 @@ import type { GatewayBrowserClient, GatewayHelloOk } from "./gateway.ts";
 import type { Tab } from "./navigation.ts";
 import type { UiSettings } from "./storage.ts";
 import type { ThemeTransitionContext } from "./theme-transition.ts";
-import type { ResolvedTheme, ThemeMode } from "./theme.ts";
+import type { ResolvedTheme, ThemeMode, ThemeName } from "./theme.ts";
 import type {
   AgentsListResult,
   AgentsFilesListResult,
@@ -44,9 +44,10 @@ export type AppViewState = {
   onboarding: boolean;
   basePath: string;
   connected: boolean;
-  theme: ThemeMode;
+  theme: ThemeName;
+  themeMode: ThemeMode;
   themeResolved: ResolvedTheme;
-  themeOrder: ThemeMode[];
+  themeOrder: ThemeName[];
   hello: GatewayHelloOk | null;
   lastError: string | null;
   eventLog: EventLogEntry[];
@@ -247,7 +248,8 @@ export type AppViewState = {
   refreshSessionsAfterChat: Set<string>;
   connect: () => void;
   setTab: (tab: Tab) => void;
-  setTheme: (theme: ThemeMode, context?: ThemeTransitionContext) => void;
+  setTheme: (theme: ThemeName, context?: ThemeTransitionContext) => void;
+  setThemeMode: (mode: ThemeMode, context?: ThemeTransitionContext) => void;
   applySettings: (next: UiSettings) => void;
   loadOverview: () => Promise<void>;
   loadAssistantIdentity: () => Promise<void>;

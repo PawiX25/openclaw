@@ -32,7 +32,7 @@ import {
 } from "./navigation.ts";
 import { saveSettings, type UiSettings } from "./storage.ts";
 import { startThemeTransition, type ThemeTransitionContext } from "./theme-transition.ts";
-import { resolveTheme, type ResolvedTheme, type ThemeMode } from "./theme.ts";
+import { resolveTheme, type ResolvedTheme, type ThemeMode, type ThemeName } from "./theme.ts";
 
 let systemThemeCleanup: (() => void) | null = null;
 import type { AgentsListResult, AttentionItem } from "./types.ts";
@@ -40,7 +40,8 @@ import type { AgentsListResult, AttentionItem } from "./types.ts";
 type SettingsHost = {
   settings: UiSettings;
   password?: string;
-  theme: ThemeMode;
+  theme: ThemeName;
+  themeMode: ThemeMode;
   themeResolved: ResolvedTheme;
   applySessionKey: string;
   sessionKey: string;
@@ -64,9 +65,10 @@ export function applySettings(host: SettingsHost, next: UiSettings) {
   };
   host.settings = normalized;
   saveSettings(normalized);
-  if (next.theme !== host.theme) {
+  if (next.theme !== host.theme || next.themeMode !== host.themeMode) {
     host.theme = next.theme;
-    applyResolvedTheme(host, resolveTheme(next.theme));
+    host.themeMode = next.themeMode;
+    applyResolvedTheme(host, resolveTheme(next.theme, next.themeMode));
   }
   host.applySessionKey = host.settings.lastActiveSessionKey;
 }
@@ -165,16 +167,32 @@ export function setTab(host: SettingsHost, next: Tab) {
   syncUrlWithTab(host, next, false);
 }
 
-export function setTheme(host: SettingsHost, next: ThemeMode, context?: ThemeTransitionContext) {
-  const resolved = resolveTheme(next);
+export function setTheme(host: SettingsHost, next: ThemeName, context?: ThemeTransitionContext) {
+  const resolved = resolveTheme(next, host.themeMode);
   const applyTheme = () => {
-    host.theme = next;
     applySettings(host, { ...host.settings, theme: next });
-    applyResolvedTheme(host, resolved);
   };
   startThemeTransition({
     nextTheme: resolved,
     applyTheme,
+    context,
+    currentTheme: host.themeResolved,
+  });
+  syncSystemThemeListener(host);
+}
+
+export function setThemeMode(
+  host: SettingsHost,
+  next: ThemeMode,
+  context?: ThemeTransitionContext,
+) {
+  const resolved = resolveTheme(host.theme, next);
+  const applyMode = () => {
+    applySettings(host, { ...host.settings, themeMode: next });
+  };
+  startThemeTransition({
+    nextTheme: resolved,
+    applyTheme: applyMode,
     context,
     currentTheme: host.themeResolved,
   });
@@ -262,8 +280,9 @@ export function inferBasePath() {
 }
 
 export function syncThemeWithSettings(host: SettingsHost) {
-  host.theme = host.settings.theme ?? "dark";
-  applyResolvedTheme(host, resolveTheme(host.theme));
+  host.theme = host.settings.theme ?? "claw";
+  host.themeMode = host.settings.themeMode ?? "system";
+  applyResolvedTheme(host, resolveTheme(host.theme, host.themeMode));
   syncSystemThemeListener(host);
 }
 
@@ -274,11 +293,11 @@ export function applyResolvedTheme(host: SettingsHost, resolved: ResolvedTheme) 
   }
   const root = document.documentElement;
   root.dataset.theme = resolved;
-  root.style.colorScheme = resolved === "light" ? "light" : "dark";
+  root.style.colorScheme = resolved.endsWith("light") ? "light" : "dark";
 }
 
 function syncSystemThemeListener(host: SettingsHost) {
-  if (host.theme !== "system") {
+  if (host.themeMode !== "system") {
     if (systemThemeCleanup) {
       systemThemeCleanup();
       systemThemeCleanup = null;
@@ -294,10 +313,10 @@ function syncSystemThemeListener(host: SettingsHost) {
 
   const mql = globalThis.matchMedia("(prefers-color-scheme: light)");
   const onChange = () => {
-    if (host.theme !== "system") {
+    if (host.themeMode !== "system") {
       return;
     }
-    applyResolvedTheme(host, resolveTheme("system"));
+    applyResolvedTheme(host, resolveTheme(host.theme, "system"));
   };
   mql.addEventListener("change", onChange);
   systemThemeCleanup = () => mql.removeEventListener("change", onChange);

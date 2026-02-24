@@ -1,22 +1,30 @@
-export type ConcreteTheme = "dark" | "light" | "openknot" | "fieldmanual" | "clawdash";
-export type ThemeMode = ConcreteTheme | "system";
-export type ResolvedTheme = ConcreteTheme;
+export type ThemeName = "claw" | "knot" | "dash";
+export type ThemeMode = "system" | "light" | "dark";
+export type ResolvedTheme =
+  | "dark"
+  | "light"
+  | "openknot"
+  | "openknot-light"
+  | "dash"
+  | "dash-light";
 
-export const VALID_THEMES = new Set<ThemeMode>([
-  "dark",
-  "light",
-  "openknot",
-  "fieldmanual",
-  "clawdash",
-  "system",
-]);
+export const VALID_THEME_NAMES = new Set<ThemeName>(["claw", "knot", "dash"]);
+export const VALID_THEME_MODES = new Set<ThemeMode>(["system", "light", "dark"]);
 
-const LEGACY_MAP: Record<string, ThemeMode> = {
-  defaultTheme: "dark",
-  docsTheme: "light",
-  lightTheme: "openknot",
-  landingTheme: "openknot",
-  newTheme: "openknot",
+type ThemeSelection = { theme: ThemeName; mode: ThemeMode };
+
+const LEGACY_MAP: Record<string, ThemeSelection> = {
+  defaultTheme: { theme: "claw", mode: "dark" },
+  docsTheme: { theme: "claw", mode: "light" },
+  lightTheme: { theme: "knot", mode: "dark" },
+  landingTheme: { theme: "knot", mode: "dark" },
+  newTheme: { theme: "knot", mode: "dark" },
+  dark: { theme: "claw", mode: "dark" },
+  light: { theme: "claw", mode: "light" },
+  openknot: { theme: "knot", mode: "dark" },
+  fieldmanual: { theme: "dash", mode: "dark" },
+  clawdash: { theme: "dash", mode: "light" },
+  system: { theme: "claw", mode: "system" },
 };
 
 export function prefersLightScheme(): boolean {
@@ -30,12 +38,37 @@ export function resolveSystemTheme(): ResolvedTheme {
   return prefersLightScheme() ? "light" : "dark";
 }
 
-export function resolveTheme(mode: string): ResolvedTheme {
+export function parseThemeSelection(
+  themeRaw: unknown,
+  modeRaw: unknown,
+): { theme: ThemeName; mode: ThemeMode } {
+  const theme = typeof themeRaw === "string" ? themeRaw : "";
+  const mode = typeof modeRaw === "string" ? modeRaw : "";
+
+  const normalizedTheme = VALID_THEME_NAMES.has(theme as ThemeName)
+    ? (theme as ThemeName)
+    : (LEGACY_MAP[theme]?.theme ?? "claw");
+  const normalizedMode = VALID_THEME_MODES.has(mode as ThemeMode)
+    ? (mode as ThemeMode)
+    : (LEGACY_MAP[theme]?.mode ?? "system");
+
+  return { theme: normalizedTheme, mode: normalizedMode };
+}
+
+function resolveMode(mode: ThemeMode): "light" | "dark" {
   if (mode === "system") {
-    return resolveSystemTheme();
+    return prefersLightScheme() ? "light" : "dark";
   }
-  if (VALID_THEMES.has(mode as ThemeMode)) {
-    return mode as ResolvedTheme;
+  return mode;
+}
+
+export function resolveTheme(theme: ThemeName, mode: ThemeMode): ResolvedTheme {
+  const resolvedMode = resolveMode(mode);
+  if (theme === "claw") {
+    return resolvedMode === "light" ? "light" : "dark";
   }
-  return (LEGACY_MAP[mode] as ResolvedTheme) ?? "dark";
+  if (theme === "knot") {
+    return resolvedMode === "light" ? "openknot-light" : "openknot";
+  }
+  return resolvedMode === "light" ? "dash-light" : "dash";
 }

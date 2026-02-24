@@ -1,14 +1,15 @@
 const KEY = "openclaw.control.settings.v1";
 
 import { isSupportedLocale } from "../i18n/index.ts";
-import { VALID_THEMES, type ThemeMode } from "./theme.ts";
+import { parseThemeSelection, type ThemeMode, type ThemeName } from "./theme.ts";
 
 export type UiSettings = {
   gatewayUrl: string;
   token: string;
   sessionKey: string;
   lastActiveSessionKey: string;
-  theme: ThemeMode;
+  theme: ThemeName;
+  themeMode: ThemeMode;
   chatFocusMode: boolean;
   chatShowThinking: boolean;
   splitRatio: number; // Sidebar split ratio (0.4 to 0.7, default 0.6)
@@ -29,7 +30,8 @@ export function loadSettings(): UiSettings {
     token: "",
     sessionKey: "main",
     lastActiveSessionKey: "main",
-    theme: "dark",
+    theme: "claw",
+    themeMode: "system",
     chatFocusMode: false,
     chatShowThinking: true,
     splitRatio: 0.6,
@@ -44,6 +46,10 @@ export function loadSettings(): UiSettings {
       return defaults;
     }
     const parsed = JSON.parse(raw) as Partial<UiSettings>;
+    const { theme, mode } = parseThemeSelection(
+      (parsed as { theme?: unknown }).theme,
+      (parsed as { themeMode?: unknown }).themeMode,
+    );
     return {
       gatewayUrl:
         typeof parsed.gatewayUrl === "string" && parsed.gatewayUrl.trim()
@@ -59,9 +65,8 @@ export function loadSettings(): UiSettings {
           ? parsed.lastActiveSessionKey.trim()
           : (typeof parsed.sessionKey === "string" && parsed.sessionKey.trim()) ||
             defaults.lastActiveSessionKey,
-      theme: VALID_THEMES.has(parsed.theme as ThemeMode)
-        ? (parsed.theme as ThemeMode)
-        : defaults.theme,
+      theme,
+      themeMode: mode,
       chatFocusMode:
         typeof parsed.chatFocusMode === "boolean" ? parsed.chatFocusMode : defaults.chatFocusMode,
       chatShowThinking:

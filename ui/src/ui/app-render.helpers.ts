@@ -9,7 +9,7 @@ import { ChatState, loadChatHistory } from "./controllers/chat.ts";
 import { icons } from "./icons.ts";
 import { iconForTab, pathForTab, titleForTab, type Tab } from "./navigation.ts";
 import type { ThemeTransitionContext } from "./theme-transition.ts";
-import type { ThemeMode } from "./theme.ts";
+import type { ThemeMode, ThemeName } from "./theme.ts";
 import type { SessionsListResult } from "./types.ts";
 
 type SessionDefaultsSnapshot = {
@@ -400,17 +400,21 @@ function resolveSessionOptions(
   return options;
 }
 
-type ThemeOption = { id: ThemeMode; label: string; icon: string };
+type ThemeOption = { id: ThemeName; label: string; icon: string };
 const THEME_OPTIONS: ThemeOption[] = [
-  { id: "dark", label: "Claw", icon: "🦀" },
-  { id: "light", label: "Light", icon: "☀️" },
-  { id: "openknot", label: "Knot", icon: "🪢" },
-  { id: "fieldmanual", label: "Field", icon: "🏕️" },
-  { id: "clawdash", label: "Chrome", icon: "💎" },
-  { id: "system", label: "System", icon: "🖥️" },
+  { id: "claw", label: "Claw", icon: "🦀" },
+  { id: "knot", label: "Knot", icon: "🪢" },
+  { id: "dash", label: "Dash", icon: "📊" },
 ];
 
-function currentThemeIcon(theme: ThemeMode): string {
+type ThemeModeOption = { id: ThemeMode; label: string; short: string };
+const THEME_MODE_OPTIONS: ThemeModeOption[] = [
+  { id: "system", label: "System", short: "SYS" },
+  { id: "dark", label: "Dark", short: "DARK" },
+  { id: "light", label: "Light", short: "LIGHT" },
+];
+
+function currentThemeIcon(theme: ThemeName): string {
   return THEME_OPTIONS.find((o) => o.id === theme)?.icon ?? "🎨";
 }
 
@@ -467,76 +471,69 @@ export function renderThemeToggle(state: AppViewState) {
 
 /* ── Sidebar Theme Selector ── */
 
-type ThemePreview = {
-  id: ThemeMode;
-  label: string;
-  bg: string;
-  sidebar: string;
-  accent: string;
-  glow: string;
-};
-
-const SIDEBAR_THEMES: ThemePreview[] = [
-  {
-    id: "dark",
-    label: "Claw",
-    bg: "#040810",
-    sidebar: "#06090f",
-    accent: "#ca3a29",
-    glow: "#00d4aa",
-  },
-  {
-    id: "light",
-    label: "Light",
-    bg: "#f5f2eb",
-    sidebar: "#ddd7cc",
-    accent: "#c73526",
-    glow: "#1a9e7e",
-  },
-  {
-    id: "openknot",
-    label: "Knot",
-    bg: "#000000",
-    sidebar: "#080808",
-    accent: "#a78bfa",
-    glow: "#c4b5fd",
-  },
-  {
-    id: "fieldmanual",
-    label: "Field",
-    bg: "#0e0e0e",
-    sidebar: "#121212",
-    accent: "#ca3a29",
-    glow: "#61d6ff",
-  },
-  {
-    id: "clawdash",
-    label: "Chrome",
-    bg: "#050507",
-    sidebar: "#08080c",
-    accent: "#ca3a29",
-    glow: "#c0c8d4",
-  },
-  {
-    id: "system",
-    label: "System",
-    bg: "#040810",
-    sidebar: "#f5f2eb",
-    accent: "#ca3a29",
-    glow: "#00d4aa",
-  },
-];
-
-function themeSwatchPick(state: AppViewState, theme: ThemePreview, e: Event) {
-  if (theme.id !== state.theme) {
-    const el = e.currentTarget as HTMLElement;
-    state.setTheme(theme.id, { element: el });
-  }
-}
-
 export function renderSidebarThemeSelector(state: AppViewState) {
   const isCollapsed = state.settings.navCollapsed;
-  const current = SIDEBAR_THEMES.find((tp) => tp.id === state.theme) ?? SIDEBAR_THEMES[0];
+  const currentTheme = THEME_OPTIONS.find((opt) => opt.id === state.theme) ?? THEME_OPTIONS[0];
+  const currentMode =
+    THEME_MODE_OPTIONS.find((opt) => opt.id === state.themeMode) ?? THEME_MODE_OPTIONS[0];
+
+  const applyTheme = (theme: ThemeName, e: Event) => {
+    if (theme === state.theme) {
+      return;
+    }
+    const element = e.currentTarget as HTMLElement;
+    state.setTheme(theme, { element });
+  };
+
+  const applyThemeMode = (mode: ThemeMode, e: Event) => {
+    if (mode === state.themeMode) {
+      return;
+    }
+    const element = e.currentTarget as HTMLElement;
+    state.setThemeMode(mode, { element });
+  };
+
+  const renderThemeSegmented = (opts?: { onPick?: (e: Event) => void }) => html`
+    <div class="theme-selector__segmented" role="group" aria-label="Theme">
+      ${THEME_OPTIONS.map(
+        (opt) => html`
+          <button
+            class="theme-selector__seg-btn ${opt.id === state.theme ? "theme-selector__seg-btn--active" : ""}"
+            title=${opt.label}
+            aria-label="${t("common.theme")}: ${opt.label}"
+            aria-pressed=${opt.id === state.theme}
+            @click=${(e: Event) => {
+              applyTheme(opt.id, e);
+              opts?.onPick?.(e);
+            }}
+          >
+            ${opt.label}
+          </button>
+        `,
+      )}
+    </div>
+  `;
+
+  const renderThemeModeSegmented = (opts?: { onPick?: (e: Event) => void }) => html`
+    <div class="theme-selector__segmented" role="group" aria-label="Theme mode">
+      ${THEME_MODE_OPTIONS.map(
+        (opt) => html`
+          <button
+            class="theme-selector__seg-btn ${opt.id === state.themeMode ? "theme-selector__seg-btn--active" : ""}"
+            title=${opt.label}
+            aria-label="Theme mode: ${opt.label}"
+            aria-pressed=${opt.id === state.themeMode}
+            @click=${(e: Event) => {
+              applyThemeMode(opt.id, e);
+              opts?.onPick?.(e);
+            }}
+          >
+            ${opt.short}
+          </button>
+        `,
+      )}
+    </div>
+  `;
 
   if (isCollapsed) {
     const toggleOpen = (e: Event) => {
@@ -562,26 +559,34 @@ export function renderSidebarThemeSelector(state: AppViewState) {
     return html`
       <div class="theme-selector theme-selector--collapsed">
         <button
-          class="theme-swatch theme-swatch--current"
-          title="${t("common.theme")}: ${current.label}"
-          style="--sw-bg:${current.bg};--sw-sidebar:${current.sidebar};--sw-accent:${current.accent};--sw-glow:${current.glow}"
+          class="theme-selector__trigger"
+          title="${t("common.theme")}: ${currentTheme.label} · ${currentMode.label}"
+          aria-label="${t("common.theme")}: ${currentTheme.label}, mode ${currentMode.label}"
           @click=${toggleOpen}
-        ></button>
+        >
+          <span>${currentTheme.label.slice(0, 1)}</span>
+          <span class="theme-selector__trigger-sep">/</span>
+          <span>${currentMode.label.slice(0, 1)}</span>
+        </button>
         <div class="theme-selector__popover">
-          ${SIDEBAR_THEMES.map(
-            (tp) => html`
-              <button
-                class="theme-swatch ${tp.id === state.theme ? "theme-swatch--active" : ""}"
-                title=${tp.label}
-                style="--sw-bg:${tp.bg};--sw-sidebar:${tp.sidebar};--sw-accent:${tp.accent};--sw-glow:${tp.glow}"
-                @click=${(e: Event) => {
-                  themeSwatchPick(state, tp, e);
-                  const sel = (e.currentTarget as HTMLElement).closest(".theme-selector");
-                  sel?.classList.remove("theme-selector--open");
-                }}
-              ></button>
-            `,
-          )}
+          <div class="theme-selector__group">
+            <div class="theme-selector__label">Theme</div>
+            ${renderThemeSegmented({
+              onPick: (e: Event) => {
+                const sel = (e.currentTarget as HTMLElement).closest(".theme-selector");
+                sel?.classList.remove("theme-selector--open");
+              },
+            })}
+          </div>
+          <div class="theme-selector__group">
+            <div class="theme-selector__label">Mode</div>
+            ${renderThemeModeSegmented({
+              onPick: (e: Event) => {
+                const sel = (e.currentTarget as HTMLElement).closest(".theme-selector");
+                sel?.classList.remove("theme-selector--open");
+              },
+            })}
+          </div>
         </div>
       </div>
     `;
@@ -589,21 +594,15 @@ export function renderSidebarThemeSelector(state: AppViewState) {
 
   return html`
     <div class="theme-selector">
-      <div class="theme-selector__swatches">
-        ${SIDEBAR_THEMES.map(
-          (tp) => html`
-            <button
-              class="theme-swatch ${tp.id === state.theme ? "theme-swatch--active" : ""}"
-              title=${tp.label}
-              aria-label="${t("common.theme")}: ${tp.label}"
-              aria-pressed=${tp.id === state.theme}
-              style="--sw-bg:${tp.bg};--sw-sidebar:${tp.sidebar};--sw-accent:${tp.accent};--sw-glow:${tp.glow}"
-              @click=${(e: Event) => themeSwatchPick(state, tp, e)}
-            ></button>
-          `,
-        )}
+      <div class="theme-selector__group">
+        <div class="theme-selector__label">Theme</div>
+        ${renderThemeSegmented()}
       </div>
-      <span class="theme-selector__current">${current.label}</span>
+      <div class="theme-selector__group">
+        <div class="theme-selector__label">Mode</div>
+        ${renderThemeModeSegmented()}
+      </div>
+      <span class="theme-selector__current">${currentTheme.label} · ${currentMode.label}</span>
     </div>
   `;
 }

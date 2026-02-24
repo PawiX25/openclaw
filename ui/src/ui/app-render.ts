@@ -1162,7 +1162,9 @@ export function renderApp(state: AppViewState) {
                   (state.hello?.snapshot as { server?: { version?: string } } | undefined)?.server
                     ?.version ?? "",
                 theme: state.theme,
+                themeMode: state.themeMode,
                 setTheme: (t, ctx) => state.setTheme(t, ctx),
+                setThemeMode: (m, ctx) => state.setThemeMode(m, ctx),
                 gatewayUrl: state.settings.gatewayUrl,
                 assistantName: state.assistantName,
               })
