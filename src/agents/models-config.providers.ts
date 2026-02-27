@@ -40,8 +40,10 @@ import {
   HUGGINGFACE_MODEL_CATALOG,
   buildHuggingfaceModelDefinition,
 } from "./huggingface-models.js";
+import { buildKiloProvider } from "./kilo-models.js";
 import { resolveAwsSdkEnvVarName, resolveEnvApiKey } from "./model-auth.js";
 import { OLLAMA_NATIVE_BASE_URL } from "./ollama-stream.js";
+import { buildOpencodeZenFreeProvider } from "./opencode-models-dev.js";
 import {
   buildSyntheticModelDefinition,
   SYNTHETIC_BASE_URL,
@@ -1118,6 +1120,36 @@ export async function resolveImplicitProviders(params: {
     resolveApiKeyFromProfiles({ provider: "kilocode", store: authStore });
   if (kilocodeKey) {
     providers.kilocode = { ...buildKilocodeProvider(), apiKey: kilocodeKey };
+  }
+
+  // Always add Kilo AI provider (free models, no API key required)
+  // User can override in explicit config if needed
+  log.info("Checking Kilo AI provider...");
+  if (!params.explicitProviders?.kilo) {
+    try {
+      log.info("Building Kilo AI provider...");
+      providers.kilo = await buildKiloProvider();
+      log.info(`Kilo AI provider built with ${providers.kilo.models.length} models`);
+    } catch (error) {
+      log.warn(`Failed to build Kilo provider: ${String(error)}`);
+    }
+  } else {
+    log.info("Kilo AI provider explicitly configured, skipping implicit build");
+  }
+
+  // Always add OpenCode Zen free provider (no API key required)
+  // User can override in explicit config if needed
+  log.info("Checking OpenCode Zen provider...");
+  if (!params.explicitProviders?.["zen-free"]) {
+    try {
+      log.info("Building OpenCode Zen free provider...");
+      providers["zen-free"] = await buildOpencodeZenFreeProvider();
+      log.info(`OpenCode Zen provider built with ${providers["zen-free"].models.length} models`);
+    } catch (error) {
+      log.warn(`Failed to build OpenCode Zen free provider: ${String(error)}`);
+    }
+  } else {
+    log.info("OpenCode Zen provider explicitly configured, skipping implicit build");
   }
 
   return providers;
