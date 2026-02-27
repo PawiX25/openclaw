@@ -12,6 +12,8 @@ Agent failed before reply: No API key resolved for provider
 
 Even when the provider genuinely doesn't need an API key, OpenClaw's underlying `pi-ai` and `pi-coding-agent` libraries would still error out trying to validate one.
 
+**Additionally, this fork automatically fetches currently free models from OpenCode Zen and Kilocode**, keeping your model list up-to-date with the latest free offerings without manual configuration.
+
 ### Example: OpenCode Zen Free Models
 
 [OpenCode Zen](https://opencode.ai/zen) offers free models like `big-pickle` and `minimax-m2.5-free` that don't require any API key. Configure them like this:
@@ -55,6 +57,7 @@ The key is `"authHeader": false` — this tells OpenClaw to skip API key validat
 ### Changes from upstream
 - Added `authHeader: false` support for no-auth providers
 - Runtime patching of pi-ai and pi-coding-agent to skip auth validation when `authHeader: false`
+- Automatic fetching of currently free models from OpenCode Zen and Kilocode
 
 ---
 
