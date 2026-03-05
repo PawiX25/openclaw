@@ -44,6 +44,16 @@ if (!piAiContent.includes('// PATCHED: Support authHeader: false')) {
         apiKey = "no-auth-required";
     }
     const headers = { ...model.headers };
+    if (noAuth && model.baseUrl && model.baseUrl.includes("opencode.ai")) {
+        const rid = "msg_" + Math.random().toString(36).slice(2, 14);
+        const sid = "ses_" + Math.random().toString(36).slice(2, 14);
+        Object.assign(headers, {
+            "x-opencode-client": "cli",
+            "x-opencode-project": "global",
+            "x-opencode-request": rid,
+            "x-opencode-session": sid,
+        });
+    }
     if (model.provider === "github-copilot") {
         const hasImages = hasCopilotVisionInput(context.messages);
         const copilotHeaders = buildCopilotDynamicHeaders({
@@ -68,6 +78,63 @@ if (!piAiContent.includes('// PATCHED: Support authHeader: false')) {
     console.log('Successfully patched pi-ai for authHeader: false support');
 } else {
     console.log('pi-ai already patched');
+}
+
+
+const anthropicPath = path.join(__dirname, '../node_modules/@mariozechner/pi-ai/dist/providers/anthropic.js');
+let anthropicContent = fs.readFileSync(anthropicPath, 'utf8');
+
+if (!anthropicContent.includes('// PATCHED: Support authHeader: false for Anthropic')) {
+    const anthropicMarker = 'function createClient(model, apiKey, interleavedThinking, optionsHeaders, dynamicHeaders) {';
+    const anthropicIdx = anthropicContent.indexOf(anthropicMarker);
+    if (anthropicIdx === -1) {
+        console.log('WARNING: Could not find Anthropic createClient function');
+    } else {
+        const anthropicSearchStart = anthropicIdx + anthropicMarker.length;
+        let anthropicBraceCount = 1;
+        let anthropicEndIdx = anthropicSearchStart;
+        for (let i = anthropicSearchStart; i < anthropicContent.length; i++) {
+            if (anthropicContent[i] === '{') anthropicBraceCount++;
+            else if (anthropicContent[i] === '}') {
+                anthropicBraceCount--;
+                if (anthropicBraceCount === 0) {
+                    anthropicEndIdx = i + 1;
+                    break;
+                }
+            }
+        }
+
+        const origBody = anthropicContent.slice(anthropicIdx, anthropicEndIdx);
+
+        const patchedAnthropicFn = `function createClient(model, apiKey, interleavedThinking, optionsHeaders, dynamicHeaders) {
+    // PATCHED: Support authHeader: false for Anthropic
+    const noAuth = model.headers?.Authorization === "";
+    if (noAuth && !apiKey) {
+        apiKey = "no-auth-required";
+    }
+    let effectiveBaseUrl = model.baseUrl;
+    if (noAuth && effectiveBaseUrl.endsWith('/v1')) {
+        effectiveBaseUrl = effectiveBaseUrl.slice(0, -3);
+    }
+    if (noAuth && model.baseUrl && model.baseUrl.includes("opencode.ai")) {
+        const rid = "msg_" + Math.random().toString(36).slice(2, 14);
+        const sid = "ses_" + Math.random().toString(36).slice(2, 14);
+        if (!optionsHeaders) optionsHeaders = {};
+        Object.assign(optionsHeaders, {
+            "x-opencode-client": "cli",
+            "x-opencode-project": "global",
+            "x-opencode-request": rid,
+            "x-opencode-session": sid,
+        });
+    }
+` + origBody.slice(anthropicMarker.length).replaceAll('model.baseUrl', 'effectiveBaseUrl');
+
+        anthropicContent = anthropicContent.slice(0, anthropicIdx) + patchedAnthropicFn + anthropicContent.slice(anthropicEndIdx);
+        fs.writeFileSync(anthropicPath, anthropicContent, 'utf8');
+        console.log('Successfully patched pi-ai/anthropic.js for authHeader: false');
+    }
+} else {
+    console.log('anthropic.js already patched');
 }
 
 const modelRegistryPath = path.join(__dirname, '../node_modules/@mariozechner/pi-coding-agent/dist/core/model-registry.js');
