@@ -59,7 +59,7 @@ export function resolveOpencodeZenModelApi(modelId: string): ModelApi {
   if (lower.startsWith("gpt-")) {
     return "openai-responses";
   }
-  if (lower.startsWith("claude-") || lower.startsWith("minimax-")) {
+  if (lower.startsWith("claude-")) {
     return "anthropic-messages";
   }
   if (lower.startsWith("gemini-")) {
